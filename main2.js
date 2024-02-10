@@ -247,6 +247,9 @@ function startApp() {
     // RENDERER
     const renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth, window.innerHeight );
+
+    //renderer.shadowMap.enabled = true;
+
     document.body.appendChild( renderer.domElement );
 
 
@@ -294,16 +297,16 @@ function startApp() {
 
     // --------------------------------------------- LIGHT -----------------------------------------------
 
-    /*
+    
     var ambientLight = new THREE.AmbientLight(0xffffff, 1);
     scene.add(ambientLight);
 
     var directionalLight = new THREE.DirectionalLight( 0xffffff, 3);
-    directionalLight.position.set(2,5,5);
-    directionalLight.target.position.set(-1,-1,0);
+    //directionalLight.position.set(2,5,5);
+    //directionalLight.target.position.set(-1,-1,0);
     scene.add( directionalLight );
     scene.add(directionalLight.target);
-    */
+    
 
 
 
@@ -369,6 +372,12 @@ function startApp() {
     const voxel_geometry = new THREE.BoxGeometry( 1, 1, 1 );
     
     // transparent voxel material
+
+
+    var voxel_material = new THREE.MeshNormalMaterial( { color: "rgb(198, 169, 105)"} );
+    //var voxel_material = new THREE.MeshDepthMaterial( { color: "rgb(198, 169, 105)", transparent: true, opacity: 1, depthTest : true, depthWrite: true } );
+    //var voxel_material = new THREE.MeshBasicMaterial( { color: "rgb(198, 169, 105)", wireframe: false} );
+
     var transparent_material_voxel = new THREE.MeshBasicMaterial( { color: "rgb(111, 151, 216)", wireframe: false, transparent: true, opacity: 0.5} );
     var transparent_material_yellow_voxel = new THREE.MeshBasicMaterial( { color: "rgb(198, 169, 105)", wireframe: false, transparent: true, opacity: 0.7} );
 
@@ -1442,7 +1451,7 @@ function startApp() {
                     var unionMesh = CSG.toMesh(
                         csg_voxel_list[0],
                         new THREE.Matrix4(),
-                        transparent_material_yellow_voxel,
+                        voxel_material,
                         
                     );
 
@@ -1493,7 +1502,7 @@ function startApp() {
                     var unionMesh = CSG.toMesh(
                         csg_union_list[0],
                         new THREE.Matrix4(),
-                        transparent_material_yellow_voxel,
+                        voxel_material,
                     );
                     // and put it into the boolean_mesh_list
                     boolean_mesh_list.push(unionMesh);
@@ -1560,7 +1569,7 @@ function startApp() {
                     var unionMesh = CSG.toMesh(
                         csg_union,
                         new THREE.Matrix4(),
-                        transparent_material_yellow_voxel,
+                        voxel_material,
                     );
 
 
@@ -1643,7 +1652,7 @@ function startApp() {
                     var unionMesh = CSG.toMesh(
                         csg_union_list[0],
                         new THREE.Matrix4(),
-                        transparent_material_yellow_voxel,
+                        voxel_material,
                     );
 
 
@@ -1664,6 +1673,11 @@ function startApp() {
 
             console.log("boolean_mesh_list.length is : " + boolean_mesh_list.length);
             console.log("csg_union_list.length is : " + csg_union_list.length);
+
+
+            //unionMesh.castShadow = true; //default is false
+            //unionMesh.receiveShadow = false; //default
+
 
         }
 
