@@ -1,2 +1,2 @@
-# intuitive_sculpting_1.0
+# intuitive_sculpting_2.0
  final project
