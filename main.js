@@ -18,6 +18,39 @@ import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 
 
 
+// -------------------------------------------------------------------------------------------------------------
+// ------------------------------------------------  NOTIZEN  -------------------------------------------------- 
+// -------------------------------------------------------------------------------------------------------------
+
+
+
+
+/* --------------------------------------------- Color Palette -----------------------------------------------
+
+https://colorhunt.co/palette/ffffecf1e4c3c6a969597e52
+rgb(255, 255, 236)      beige hell
+rgb(241, 228, 195)      beige dunkel
+rgb(198, 169, 105)      braun
+rgb(89, 126, 82)        grün dunkel
+
+
+https://colorhunt.co/palette/f9efdbebd9b49dbc98638889
+rgb(249, 239, 219)      beige hell
+rgb(235, 217, 180)      beige dunkel
+rgb(157, 188, 152)      grün
+rgb(99, 136, 137)       teal
+rgb(99, 126, 118)       teal dunkel
+
+
+*/
+
+
+
+
+
+
+
+
 
 
 // -------------------------------------------------------------------------------------------------------------
@@ -61,13 +94,6 @@ bgm.setAttribute("id", "bgm");
 bgm.setAttribute("loop", "");
 //bgm.innerHTML = '<source src = "sounds/wii.mp3", type = "audio/mpeg">';
 document.body.appendChild(bgm);
-
-
-
-
-
-
-
 
 
 
@@ -214,15 +240,31 @@ const videoLink = document.createElement('button');
 
 
 
-// -------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------ INITIALIZE -------------------------------------------------- 
-// -------------------------------------------------------------------------------------------------------------
+
+
+
 
 
 
 // --------------------------------------------- APP AS FUNCTION -----------------------------------------------
 
 function startApp() {
+
+   
+
+
+    // -------------------------------------------------------------------------------------------------------------
+    // ------------------------------------------------ INITIALIZE -------------------------------------------------- 
+    // -------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
 
     // --------------------------------------------- DOCUMENT -----------------------------------------------
 
@@ -318,15 +360,28 @@ function startApp() {
     
     var gui = new GUI();
 
+    /*.lil-gui {
+        --background-color: #ffffec;
+        --text-color: #000000;
+        --title-background-color: #c6a96a;
+        --title-text-color: #ffffff;
+        --widget-color: #c6a96a;
+        --hover-color: #587c51;
+        --focus-color: #439344;
+        --number-color: #ffffff;
+        --string-color: #587c51;
+    }*/   
 
     // Parameters
-    const parameters = {
-        toolheadSize: 1
+    var parameters = {
+        toolheadSize: 1,
+        toolheadType: 2
     }
 
 
     // Add sliders to GUI
-    gui.add (parameters, 'toolheadSize', 1, 10 , 1);
+    gui.add (parameters, 'toolheadSize', 1, 3 , 1);
+    gui.add (parameters, 'toolheadType', 1, 2 , 1);
 
         
     // Apply custom styling to the GUI container
@@ -350,12 +405,13 @@ function startApp() {
 
     // --------------------------------------------- PARAMETERS -----------------------------------------------
 
-    var x_size = 60;
-    var y_size = 60;
-    var z_size = 60;
+    var x_size = 200;
+    var y_size = 200;
+    var z_size = 200;
 
-    var toolhead_speed = 0.1;
+    var toolhead_speed = 0.5;
     var toolhead_size = parameters.toolheadSize;
+    var toolhead_type = parameters.toolheadType;
 
     var voxel_list = [];
 
@@ -368,13 +424,31 @@ function startApp() {
     // --------------------------------------------- VOXEL PARAMETERS -----------------------------------------------
 
 
+
+
+
+
+    // display toolhead material
+    var display_toolhead_material = new THREE.MeshBasicMaterial( { color: "rgb(111, 151, 216)", wireframe: false, transparent: true, opacity: 0.5} );
+
+
+    // point geometry
+    var point_geometry = new THREE.BufferGeometry();
+    var point_material = new THREE.PointsMaterial( { size: 1, color: 0x000000 } );
+    
+
+
     // voxel geometry
     const voxel_geometry = new THREE.BoxGeometry( 1, 1, 1 );
     
     // transparent voxel material
 
 
-    var voxel_material = new THREE.MeshNormalMaterial( { color: "rgb(198, 169, 105)"} );
+    var phong_material = new THREE.MeshPhongMaterial({color: 0xFF0000});
+
+    var normal_voxel_material = new THREE.MeshNormalMaterial( );
+
+    var voxel_material = new THREE.MeshNormalMaterial( );
     //var voxel_material = new THREE.MeshDepthMaterial( { color: "rgb(198, 169, 105)", transparent: true, opacity: 1, depthTest : true, depthWrite: true } );
     //var voxel_material = new THREE.MeshBasicMaterial( { color: "rgb(198, 169, 105)", wireframe: false} );
 
@@ -385,9 +459,14 @@ function startApp() {
     var wireframe_material_voxel = new THREE.MeshBasicMaterial( { color: "rgb(25, 76, 111)", wireframe: true } );
 
 
+
+
+
+    
     // --------------------------------------------- TOOLHEAD ----------------------------------------------- 
 
     var toolhead_list = [];
+    var toolhead_display_geometry = [];
 
     // toolhead material
     const toolhead_material = new THREE.MeshBasicMaterial({ color: 'rgb(89, 126, 82)' });
@@ -396,6 +475,8 @@ function startApp() {
 
 
 
+    //create_box_toolhead();
+    //create_sphere_toolhead();
     create_toolhead();
 
 
@@ -631,7 +712,7 @@ function startApp() {
     var key38 = false;
     var key40 = false;
     var key32 = false;
-    var key16 = false;
+    var key17 = false;
 
 
     // onKeyDown function
@@ -681,8 +762,8 @@ function startApp() {
         }
 
         // SHIFT ERASE
-        if (keyCode == 16) {
-            key16 = true;
+        if (keyCode == 17) {
+            key17 = true;
         }
 
 
@@ -738,8 +819,8 @@ function startApp() {
         }
 
         // SPACE PAINT
-        if (keyCode == 16) {
-            key16 = false;
+        if (keyCode == 17) {
+            key17 = false;
         }
     
 
@@ -818,11 +899,16 @@ function startApp() {
         }
 
 
+        toolhead_display_geometry[0].position.x += movement_x;
+        toolhead_display_geometry[0].position.y += movement_y;
+        toolhead_display_geometry[0].position.z += movement_z;
+
+
 
         // calculating the average coordinates
-        var average_of_points_x = sum_of_points_x / (toolhead_size**3 );
-        var average_of_points_y = sum_of_points_y / (toolhead_size**3 );
-        var average_of_points_z = sum_of_points_z / (toolhead_size**3 );
+        var average_of_points_x = sum_of_points_x / (toolhead_list.length );
+        var average_of_points_y = sum_of_points_y / (toolhead_list.length );
+        var average_of_points_z = sum_of_points_z / (toolhead_list.length );
 
         // refreshing the toolhead center
         toolhead_center.x = average_of_points_x
@@ -863,6 +949,10 @@ function startApp() {
 
 
     }
+
+    
+
+    
 
 
 
@@ -906,11 +996,757 @@ function startApp() {
     // ------------------------------------------------ FUNCTIONS -------------------------------------------------- 
     // -------------------------------------------------------------------------------------------------------------
 
+    
+
+
+     
+
+
 
 
     // --------------------------------------------- PAINT FUNCTION ----------------------------------------------- 
 
-    function paint() {
+
+    var voxel_position_list = [];
+    const points_array = [];
+
+
+
+    function paint_points() {
+
+
+
+        // function should only be executed when the painting button is pressed
+        if( key32 == true ) {
+
+
+
+
+            // durch die toolhead liste durch iterieren um an jeder position einen voxel zu erstellen 
+            
+            for (let i = 0; i < toolhead_list.length; i++) {
+                
+                
+
+
+                const var_x = Math.floor(toolhead_list[i].position.x)
+                const var_y = Math.floor(toolhead_list[i].position.y)
+                const var_z = Math.floor(toolhead_list[i].position.z)
+
+
+                // checken ob die coordinaten innerhalb des workspaces liegen. wenn nicht, wird nichts gemacht.
+                if (var_x >= 0 && var_y >= 0 && var_z >= 0 && var_x < x_size && var_y < y_size && var_z < z_size){
+
+
+
+                    if (   voxel_grid [var_x] [var_y] [var_z]  == 0  ) {
+
+                        //console.log( voxel_grid[Math.floor ( toolhead.position.x ) ][ Math.floor(toolhead.position.y)]  );
+                        //console.log("000")
+
+                        // den wert im voxel grid auf 1 setzent
+
+
+                        voxel_grid[var_x][var_y][var_z] = 1
+
+
+                        const these_coordinates = [];
+
+                        these_coordinates.push(var_x);
+                        these_coordinates.push(var_y);
+                        these_coordinates.push(var_z);
+
+                        voxel_position_list.push(these_coordinates);
+
+
+
+
+
+
+
+                        // this way also works!!
+                        
+                        removeObject( voxel_list[0]);
+                        voxel_list = [];
+
+                        const this_position_vec3 = new THREE.Vector3( var_x + 0.5, var_y + 0.5 , var_z + 0.5);
+                        points_array.push(this_position_vec3);
+
+                        point_geometry.setFromPoints(points_array);
+                        var point = new THREE.Points( point_geometry, point_material );
+
+
+                        voxel_list.push(point);
+                        scene.add( point );
+                        console.log("voxel created");
+                        
+                    
+
+
+
+                       
+                       
+
+
+                        // this way wortks!!!!!!
+                        /*
+                        var dotGeometry = new THREE.BufferGeometry();
+                        dotGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [var_x + 0.5, var_y + 0.5 , var_z + 0.5], 3 ) );
+                        var point = new THREE.Points( dotGeometry, point_material );
+                        //scene.add( dot ); 
+                        
+                        voxel_list.push(point);
+                        scene.add( point );
+                        console.log("voxel created");
+                        */
+                        
+                       
+
+
+
+
+                        
+                        
+
+
+
+
+
+
+                        /*
+                        removeObject( voxel_list[0]);
+                        voxel_list = [];
+
+
+
+                        var count = voxel_position_list.length;
+
+                        //var dotGeometry = new THREE.BufferGeometry();
+                        //var dotMaterial = new THREE.PointsMaterial( { size: 1, color: 0x000000 } );
+
+
+				        var mesh = new THREE.InstancedMesh( point_geometry, point_material, count );
+
+                        const matrix = new THREE.Matrix4();
+
+
+                        for (let i = 0; i < voxel_position_list.length; i++) {
+                          
+                            matrix.setPosition( voxel_position_list[i][0], voxel_position_list[i][1], voxel_position_list[i][2] );
+
+						    mesh.setMatrixAt( i, matrix );
+						    //mesh.setColorAt( i, color );
+
+                        }
+                        
+
+                        voxel_list.push(mesh);
+
+                        scene.add( mesh );
+
+                        */
+
+                        console.log("voxel created");
+                        
+
+
+
+
+
+
+
+                      
+
+
+
+                    }
+                    
+
+                }
+
+
+            }
+
+        }
+
+    }
+
+
+    /*
+    var last_voxel_positions = [];
+    var mesh = new THREE.InstancedMesh( voxel_geometry, normal_voxel_material, 0 );
+    var matrix = new THREE.Matrix4();
+    */
+
+
+    function paint_instanced_mesh_new() {
+
+
+
+        // function should only be executed when the painting button is pressed
+        if( key32 == true ) {
+
+            last_voxel_positions = [];
+
+
+            // durch die toolhead liste durch iterieren um an jeder position einen voxel zu erstellen 
+            
+            for (let i = 0; i < toolhead_list.length; i++) {
+                
+                 
+
+
+                const var_x = Math.floor(toolhead_list[i].position.x)
+                const var_y = Math.floor(toolhead_list[i].position.y)
+                const var_z = Math.floor(toolhead_list[i].position.z)
+
+
+                // checken ob die coordinaten innerhalb des workspaces liegen. wenn nicht, wird nichts gemacht.
+                if (var_x >= 0 && var_y >= 0 && var_z >= 0 && var_x < x_size && var_y < y_size && var_z < z_size){
+
+
+
+                    if (   voxel_grid [var_x] [var_y] [var_z]  == 0  ) {
+
+                        //console.log( voxel_grid[Math.floor ( toolhead.position.x ) ][ Math.floor(toolhead.position.y)]  );
+                        //console.log("000")
+
+                        // den wert im voxel grid auf 1 setzent
+
+
+                        voxel_grid[var_x][var_y][var_z] = 1
+
+
+                        const these_coordinates = [];
+
+                        these_coordinates.push(var_x + 0.5);
+                        these_coordinates.push(var_y + 0.5);
+                        these_coordinates.push(var_z + 0.5);
+
+                        voxel_position_list.push(these_coordinates);
+
+
+                        last_voxel_positions.push(these_coordinates);
+
+
+
+                        removeObject( voxel_list[0]);
+                        voxel_list = [];
+
+
+
+                        //const geometry = new THREE.IcosahedronGeometry( 0.5, 3 );
+				        //const material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
+                        //const material = new THREE.MeshNormalMaterial( );
+
+
+                        var added_count = last_voxel_positions.length;
+
+                        var old_count = mesh.count;
+                          
+                        var new_count = old_count + added_count
+
+                        console.log(new_count); 
+
+
+
+
+				        mesh.count = new_count;
+
+                        var j = 0;
+
+
+                        for (let i = old_count ; i < new_count; i++) {
+                          
+                            matrix.setPosition( last_voxel_positions[j][0], last_voxel_positions[j][1], last_voxel_positions[j][2] );
+
+						    mesh.setMatrixAt( j, matrix );
+						    //mesh.setColorAt( i, color );
+
+                            j++;
+
+                        }
+                        
+
+                        voxel_list.push(mesh);
+
+                        //scene.add( mesh );
+
+
+
+                        console.log("voxel created");
+
+
+
+                        /*
+                        const instancedMesh = new THREE.InstancedMesh(
+                            voxel_geometry,
+                            new THREE.MeshPhongMaterial()
+                        );
+
+
+                        const temp = new THREE.Object3D()
+
+
+                        for (let i = 0; i < voxel_position_list.length; i++) {
+                          
+                            temp.position.set(voxel_position_list[i][0], voxel_position_list[i][1], voxel_position_list[i][2]);
+                            temp.updateMatrix();
+                            instancedMesh.setMatrixAt(i, temp.matrix);
+
+                        }
+                        
+                        instancedMesh.instanceMatrix.needsUpdate = true;
+
+
+
+                        scene.add( instancedMesh );
+
+                        */
+
+
+                        /*
+                        function createInstances(i_x, i_y, i_z, temp = new THREE.Object3D()) {
+
+                            var this_x = i_x;
+                            var this_y = i_y;
+                            var this_z = i_z;
+
+                            const instancedMesh = new THREE.InstancedMesh(
+                                new THREE.BoxGeometry(),
+                                new THREE.MeshPhongMaterial()
+                            );
+                        
+                            
+                            temp.position.set(this_x, this_y, this_z);
+                            temp.updateMatrix();
+                            instancedMesh.setMatrixAt(1, temp.matrix);
+                            
+                        
+                            instancedMesh.instanceMatrix.needsUpdate = true;
+                        
+                            return instancedMesh;
+                        }
+                        */
+
+
+                        //const voxel_cube = createInstances(var_x + 0.5 , var_y + 0.5, var_z + 0.5);
+
+                        
+                        /*
+                        // old way to create voxels
+                        const voxel_cube = new THREE.InstancedMesh( voxel_geometry, transparent_material_voxel, 1 ); 
+                        //const voxel_cube2 = new THREE.Mesh( voxel_geometry, wireframe_material_voxel );
+
+
+                        voxel_cube.position.set( var_x + 0.5 , var_y + 0.5, var_z + 0.5);
+                        //voxel_cube2.position.set( var_x + 0.5, var_y + 0.5 , var_z + 0.5);
+
+                        //voxel_cube.instanceMatrix.setUsage( THREE.DynamicDrawUsage );
+
+                        voxel_list.push(voxel_cube);
+
+                        scene.add( voxel_cube );
+                        //scene.add( voxel_cube2 );
+
+                        console.group(voxel_cube);
+                        */
+                        
+
+
+
+
+                    }
+                    
+
+                }
+
+
+            }
+
+        }
+
+    }
+
+
+    
+
+
+    function paint_instanced_mesh_clean() {
+
+
+
+        // function should only be executed when the painting button is pressed
+        if( key32 == true ) {
+
+            var create_new_voxels = false;
+
+
+            // durch die toolhead liste durch iterieren um an jeder position einen voxel zu erstellen 
+            
+            for (let i = 0; i < toolhead_list.length; i++) {
+                
+                
+
+
+                const var_x = Math.floor(toolhead_list[i].position.x)
+                const var_y = Math.floor(toolhead_list[i].position.y)
+                const var_z = Math.floor(toolhead_list[i].position.z)
+
+
+                // checken ob die coordinaten innerhalb des workspaces liegen. wenn nicht, wird nichts gemacht.
+                if (var_x >= 0 && var_y >= 0 && var_z >= 0 && var_x < x_size && var_y < y_size && var_z < z_size){
+
+
+
+                    if (   voxel_grid [var_x] [var_y] [var_z]  == 0  ) {
+
+                        //console.log( voxel_grid[Math.floor ( toolhead.position.x ) ][ Math.floor(toolhead.position.y)]  );
+                        //console.log("000")
+
+                        // den wert im voxel grid auf 1 setzent
+
+                        create_new_voxels = true;
+
+
+                        voxel_grid[var_x][var_y][var_z] = 1
+
+
+                        const these_coordinates = [];
+
+                        these_coordinates.push(var_x + 0.5);
+                        these_coordinates.push(var_y + 0.5);
+                        these_coordinates.push(var_z + 0.5);
+
+                        voxel_position_list.push(these_coordinates);
+
+
+
+                        console.log("voxel created");
+
+
+
+                        /*
+                        const instancedMesh = new THREE.InstancedMesh(
+                            voxel_geometry,
+                            new THREE.MeshPhongMaterial()
+                        );
+
+
+                        const temp = new THREE.Object3D()
+
+
+                        for (let i = 0; i < voxel_position_list.length; i++) {
+                          
+                            temp.position.set(voxel_position_list[i][0], voxel_position_list[i][1], voxel_position_list[i][2]);
+                            temp.updateMatrix();
+                            instancedMesh.setMatrixAt(i, temp.matrix);
+
+                        }
+                        
+                        instancedMesh.instanceMatrix.needsUpdate = true;
+
+
+
+                        scene.add( instancedMesh );
+
+                        */
+
+
+                        /*
+                        function createInstances(i_x, i_y, i_z, temp = new THREE.Object3D()) {
+
+                            var this_x = i_x;
+                            var this_y = i_y;
+                            var this_z = i_z;
+
+                            const instancedMesh = new THREE.InstancedMesh(
+                                new THREE.BoxGeometry(),
+                                new THREE.MeshPhongMaterial()
+                            );
+                        
+                            
+                            temp.position.set(this_x, this_y, this_z);
+                            temp.updateMatrix();
+                            instancedMesh.setMatrixAt(1, temp.matrix);
+                            
+                        
+                            instancedMesh.instanceMatrix.needsUpdate = true;
+                        
+                            return instancedMesh;
+                        }
+                        */
+
+
+                        //const voxel_cube = createInstances(var_x + 0.5 , var_y + 0.5, var_z + 0.5);
+
+                        
+                        /*
+                        // old way to create voxels
+                        const voxel_cube = new THREE.InstancedMesh( voxel_geometry, transparent_material_voxel, 1 ); 
+                        //const voxel_cube2 = new THREE.Mesh( voxel_geometry, wireframe_material_voxel );
+
+
+                        voxel_cube.position.set( var_x + 0.5 , var_y + 0.5, var_z + 0.5);
+                        //voxel_cube2.position.set( var_x + 0.5, var_y + 0.5 , var_z + 0.5);
+
+                        //voxel_cube.instanceMatrix.setUsage( THREE.DynamicDrawUsage );
+
+                        voxel_list.push(voxel_cube);
+
+                        scene.add( voxel_cube );
+                        //scene.add( voxel_cube2 );
+
+                        console.group(voxel_cube);
+                        */
+                        
+
+
+
+
+                    }
+                    
+
+                }
+
+
+            }
+
+
+
+
+            // gets inlyx executed if minimum 1 new voxel can be created
+            if (create_new_voxels == true){
+
+            
+                removeObject( voxel_list[0]);
+                voxel_list = [];
+
+
+
+                //const geometry = new THREE.IcosahedronGeometry( 0.5, 3 );
+                //const material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
+                //const material = new THREE.MeshNormalMaterial( );
+
+
+                var count = voxel_position_list.length;
+
+                var instanced_mesh = new THREE.InstancedMesh( voxel_geometry, normal_voxel_material,  count );
+
+                const matrix = new THREE.Matrix4();
+
+
+                for (let i = 0; i < voxel_position_list.length; i++) {
+                
+                    matrix.setPosition( voxel_position_list[i][0], voxel_position_list[i][1], voxel_position_list[i][2] );
+
+                    instanced_mesh.setMatrixAt( i, matrix );
+                    //mesh.setColorAt( i, color );
+
+                }
+                
+
+                voxel_list.push(instanced_mesh);
+
+                scene.add( instanced_mesh );
+
+
+
+                
+
+
+            }
+
+
+        }
+
+    }
+
+
+
+
+
+
+    function paint_instanced_mesh() {
+
+
+
+        // function should only be executed when the painting button is pressed
+        if( key32 == true ) {
+
+
+
+
+            // durch die toolhead liste durch iterieren um an jeder position einen voxel zu erstellen 
+            
+            for (let i = 0; i < toolhead_list.length; i++) {
+                
+                
+
+
+                const var_x = Math.floor(toolhead_list[i].position.x)
+                const var_y = Math.floor(toolhead_list[i].position.y)
+                const var_z = Math.floor(toolhead_list[i].position.z)
+
+
+                // checken ob die coordinaten innerhalb des workspaces liegen. wenn nicht, wird nichts gemacht.
+                if (var_x >= 0 && var_y >= 0 && var_z >= 0 && var_x < x_size && var_y < y_size && var_z < z_size){
+
+
+
+                    if (   voxel_grid [var_x] [var_y] [var_z]  == 0  ) {
+
+                        //console.log( voxel_grid[Math.floor ( toolhead.position.x ) ][ Math.floor(toolhead.position.y)]  );
+                        //console.log("000")
+
+                        // den wert im voxel grid auf 1 setzent
+
+
+                        voxel_grid[var_x][var_y][var_z] = 1
+
+
+                        const these_coordinates = [];
+
+                        these_coordinates.push(var_x + 0.5);
+                        these_coordinates.push(var_y + 0.5);
+                        these_coordinates.push(var_z + 0.5);
+
+                        voxel_position_list.push(these_coordinates);
+
+
+
+                        removeObject( voxel_list[0]);
+                        voxel_list = [];
+
+
+
+                        //const geometry = new THREE.IcosahedronGeometry( 0.5, 3 );
+				        //const material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
+                        //const material = new THREE.MeshNormalMaterial( );
+
+
+                        var count = voxel_position_list.length;
+
+				        var mesh = new THREE.InstancedMesh( voxel_geometry, normal_voxel_material, count );
+
+                        const matrix = new THREE.Matrix4();
+
+
+                        for (let i = 0; i < voxel_position_list.length; i++) {
+                          
+                            matrix.setPosition( voxel_position_list[i][0], voxel_position_list[i][1], voxel_position_list[i][2] );
+
+						    mesh.setMatrixAt( i, matrix );
+						    //mesh.setColorAt( i, color );
+
+                        }
+                        
+
+                        voxel_list.push(mesh);
+
+                        scene.add( mesh );
+
+
+
+                        console.log("voxel created");
+
+
+
+                        /*
+                        const instancedMesh = new THREE.InstancedMesh(
+                            voxel_geometry,
+                            new THREE.MeshPhongMaterial()
+                        );
+
+
+                        const temp = new THREE.Object3D()
+
+
+                        for (let i = 0; i < voxel_position_list.length; i++) {
+                          
+                            temp.position.set(voxel_position_list[i][0], voxel_position_list[i][1], voxel_position_list[i][2]);
+                            temp.updateMatrix();
+                            instancedMesh.setMatrixAt(i, temp.matrix);
+
+                        }
+                        
+                        instancedMesh.instanceMatrix.needsUpdate = true;
+
+
+
+                        scene.add( instancedMesh );
+
+                        */
+
+
+                        /*
+                        function createInstances(i_x, i_y, i_z, temp = new THREE.Object3D()) {
+
+                            var this_x = i_x;
+                            var this_y = i_y;
+                            var this_z = i_z;
+
+                            const instancedMesh = new THREE.InstancedMesh(
+                                new THREE.BoxGeometry(),
+                                new THREE.MeshPhongMaterial()
+                            );
+                        
+                            
+                            temp.position.set(this_x, this_y, this_z);
+                            temp.updateMatrix();
+                            instancedMesh.setMatrixAt(1, temp.matrix);
+                            
+                        
+                            instancedMesh.instanceMatrix.needsUpdate = true;
+                        
+                            return instancedMesh;
+                        }
+                        */
+
+
+                        //const voxel_cube = createInstances(var_x + 0.5 , var_y + 0.5, var_z + 0.5);
+
+                        
+                        /*
+                        // old way to create voxels
+                        const voxel_cube = new THREE.InstancedMesh( voxel_geometry, transparent_material_voxel, 1 ); 
+                        //const voxel_cube2 = new THREE.Mesh( voxel_geometry, wireframe_material_voxel );
+
+
+                        voxel_cube.position.set( var_x + 0.5 , var_y + 0.5, var_z + 0.5);
+                        //voxel_cube2.position.set( var_x + 0.5, var_y + 0.5 , var_z + 0.5);
+
+                        //voxel_cube.instanceMatrix.setUsage( THREE.DynamicDrawUsage );
+
+                        voxel_list.push(voxel_cube);
+
+                        scene.add( voxel_cube );
+                        //scene.add( voxel_cube2 );
+
+                        console.group(voxel_cube);
+                        */
+                        
+
+
+
+
+                    }
+                    
+
+                }
+
+
+            }
+
+        }
+
+    }
+
+
+
+
+
+    function paint_voxel() {
 
 
 
@@ -1005,7 +1841,7 @@ function startApp() {
 
 
         // es wird nur etwas ausgeführt wenn der löschen key gedrückt wird
-        if (key16 == true) {
+        if (key17 == true) {
 
 
 
@@ -1389,7 +2225,7 @@ function startApp() {
     var safety_num = 0;
     var csg_union_list = [];
     var boolean_mesh_list = [];
-    var safety_num_limit = 1000;
+    var safety_num_limit = 1000000;
 
 
     // Define an array to store references to the meshes created in unionMesh
@@ -1691,11 +2527,1200 @@ function startApp() {
 
     // --------------------------------------------- TOOLHEAD FUNCTIONS ----------------------------------------------- 
 
+    
     function create_toolhead(){
 
+        if (toolhead_type == 1){
+
+            create_box_toolhead();
+            console.log("create_box_toolhead()");
+
+        }
+
+        else if (toolhead_type == 2){
+
+            create_sphere_toolhead();
+            console.log("create_sphere_toolhead()");
+
+        }
+
+
+
+    }
+
+
+
+
+
+    function create_sphere_toolhead(){
+
+
+
         toolhead_list = [];
+        toolhead_display_geometry = [];
 
 
+        /*
+
+        if (toolhead_size  == 1){
+
+            // Toolhead geometry
+            var toolhead_geometry = new THREE.BoxGeometry(0.5,0.5,0.5);
+            var toolhead = new THREE.Mesh(toolhead_geometry, toolhead_material);
+
+            //console.log(toolhead_center);
+
+            toolhead.position.set(toolhead_center.x,toolhead_center.y, toolhead_center.z );
+
+
+            //console.log(toolhead.position);
+
+
+            scene.add(toolhead);
+
+            toolhead_list.push(toolhead);
+
+
+
+            //toolhead_center = toolhead.position;
+
+        }
+
+        */
+
+
+
+        if (toolhead_size == 1) {
+
+
+            // toolhead display geometry
+            var sphere_geometry = new THREE.SphereGeometry(4.2);
+            var display_toolhead = new THREE.Mesh(sphere_geometry, display_toolhead_material);
+            display_toolhead.position.set(toolhead_center.x , toolhead_center.y , toolhead_center.z );
+
+            toolhead_display_geometry.push(display_toolhead);
+            scene.add(display_toolhead);
+            
+
+
+
+            
+            //toolhead_center = new THREE.Vector3(toolhead_size / 2,toolhead_size / 2,toolhead_size / 2 )
+
+
+            var _x =  toolhead_center.x +  0.5
+            var _y =  toolhead_center.y +  0.5
+            var _z =  toolhead_center.z +  0.5
+
+
+            var toolhead_coordinates = [
+
+
+                
+                [_x, _y, _z], // midlle point
+                //[_x, _y, _z +1],
+                //[_x, _y, _z -1],
+                //[_x, _y, _z -2],
+                
+
+                // oberes kreuz
+                [_x, _y, _z + 2],
+                [_x -1, _y, _z + 2],
+                [_x -1, _y -1, _z + 2],
+                [_x, _y -1, _z + 2],
+
+                [_x, _y +1, _z + 2],
+                [_x -1, _y +1, _z + 2],
+
+                [_x -2, _y, _z + 2],
+                [_x -2, _y -1, _z + 2],
+
+                [_x, _y -2, _z + 2],
+                [_x -1, _y -2, _z + 2],
+
+                [_x +1, _y, _z + 2],
+                [_x +1, _y -1, _z + 2],
+
+
+                // unteres kreuz
+                [_x, _y, _z - 3],
+                [_x -1, _y, _z - 3],
+                [_x -1, _y -1, _z - 3],
+                [_x, _y -1, _z - 3],
+
+                [_x, _y +1, _z - 3],
+                [_x -1, _y +1, _z - 3],
+
+                [_x -2, _y, _z - 3],
+                [_x -2, _y -1, _z - 3],
+
+                [_x, _y -2, _z - 3],
+                [_x -1, _y -2, _z - 3],
+
+                [_x +1, _y, _z - 3],
+                [_x +1, _y -1, _z - 3],
+
+
+
+                // rechtes kreuz
+                [_x +2, _y, _z],
+                [_x +2, _y -1, _z],
+                [_x +2, _y -1, _z -1],
+                [_x +2, _y , _z -1],
+
+                [_x +2, _y, _z +1],
+                [_x +2, _y -1, _z +1],
+
+                [_x +2, _y -2, _z],
+                [_x +2, _y -2, _z -1],
+
+                [_x +2, _y, _z -2],
+                [_x +2, _y -1, _z -2],
+
+                [_x +2, _y +1, _z],
+                [_x +2, _y +1, _z -1],
+
+
+                // linkes kreuz
+                [_x -3, _y, _z],
+                [_x -3, _y -1, _z],
+                [_x -3, _y -1, _z -1],
+                [_x -3, _y , _z -1],
+
+                [_x -3, _y, _z +1],
+                [_x -3, _y -1, _z +1],
+
+                [_x -3, _y -2, _z],
+                [_x -3, _y -2, _z -1],
+
+                [_x -3, _y, _z -2],
+                [_x -3, _y -1, _z -2],
+
+                [_x -3, _y +1, _z],
+                [_x -3, _y +1, _z -1],
+
+
+
+
+
+                // vorderes kreuz
+                [_x , _y +2, _z],
+                [_x -1 , _y +2, _z],
+                [_x -1, _y +2, _z -1],
+                [_x , _y +2, _z -1],
+
+                [_x +1, _y +2, _z],
+                [_x +1, _y +2, _z -1],
+
+                [_x , _y +2, _z -2],
+                [_x -1 , _y +2, _z -2],
+
+                [_x -2 , _y +2, _z],
+                [_x -2 , _y +2, _z -1],
+
+                [_x , _y +2, _z +1],
+                [_x -1 , _y +2, _z +1],
+                
+
+                // hinteres kreuz
+                [_x , _y -3, _z],
+                [_x -1 , _y -3, _z],
+                [_x -1, _y -3, _z -1],
+                [_x , _y -3, _z -1],
+
+                [_x +1, _y -3, _z],
+                [_x +1, _y -3, _z -1],
+
+                [_x , _y -3, _z -2],
+                [_x -1 , _y -3, _z -2],
+
+                [_x -2 , _y -3, _z],
+                [_x -2 , _y -3, _z -1],
+
+                [_x , _y -3, _z +1],
+                [_x -1 , _y -3, _z +1],
+                
+
+
+
+
+
+
+
+                
+
+
+
+
+
+            ];
+
+
+
+
+            var _x =  toolhead_center.x +  0.5 -2;
+            var _y =  toolhead_center.y +  0.5 -2;
+            var _z =  toolhead_center.z +  0.5 -2;
+
+
+            for (let x = 0 ; x < 4 ; x++){
+
+                for (let y = 0; y < 4 ; y++){
+
+                    for (let z = 0; z< 4; z++){
+
+                        /*
+
+                        toolhead = new THREE.Mesh(toolhead_geometry, toolhead_material);
+                        toolhead.position.set( _x + x   , _y + y  , _z + z );
+
+                        scene.add(toolhead);
+
+                        toolhead_list.push(toolhead);
+
+                        console.log("yes");
+
+                        */
+                        var these_coordinates = [_x + x, _y + y,_z + z];
+
+                        toolhead_coordinates.push(these_coordinates)
+
+                        
+
+                    } 
+
+
+                } 
+
+
+            }
+
+
+
+            toolhead_list = create_toolhead_from_coordinates(toolhead_coordinates);
+
+
+            
+        }
+
+
+
+
+
+        else if (toolhead_size == 2) {
+
+
+
+
+            // create toolhead display geometry
+            var sphere_geometry = new THREE.SphereGeometry(5.5);
+            var display_toolhead = new THREE.Mesh(sphere_geometry, display_toolhead_material);
+            display_toolhead.position.set(toolhead_center.x , toolhead_center.y , toolhead_center.z );
+
+            toolhead_display_geometry.push(display_toolhead);
+            scene.add(display_toolhead);
+
+            
+            
+            //toolhead_center = new THREE.Vector3(toolhead_size / 2,toolhead_size / 2,toolhead_size / 2 )
+
+
+            var _x =  toolhead_center.x +  0.5
+            var _y =  toolhead_center.y +  0.5
+            var _z =  toolhead_center.z +  0.5
+
+
+            var toolhead_coordinates = [
+
+
+                
+                [_x, _y, _z], // midlle point
+                //[_x, _y, _z +1],
+                //[_x, _y, _z -1],
+                //[_x, _y, _z -2],
+                
+
+                // oberes kreuz
+                [_x, _y, _z + 3],
+                [_x -1, _y, _z + 3],
+                [_x -1, _y -1, _z + 3],
+                [_x, _y -1, _z + 3],
+
+                [_x, _y +1, _z + 3],
+                [_x -1, _y +1, _z + 3],
+
+                [_x -2, _y, _z + 3],
+                [_x -2, _y -1, _z + 3],
+
+                [_x, _y -2, _z + 3],
+                [_x -1, _y -2, _z + 3],
+
+                [_x +1, _y, _z + 3],
+                [_x +1, _y -1, _z + 3],
+
+
+                
+                // unteres kreuz
+                [_x, _y, _z - 4],
+                [_x -1, _y, _z - 4],
+                [_x -1, _y -1, _z - 4],
+                [_x, _y -1, _z - 4],
+
+                [_x, _y +1, _z - 4],
+                [_x -1, _y +1, _z - 4],
+
+                [_x -2, _y, _z - 4],
+                [_x -2, _y -1, _z - 4],
+
+                [_x, _y -2, _z - 4],
+                [_x -1, _y -2, _z - 4],
+
+                [_x +1, _y, _z - 4],
+                [_x +1, _y -1, _z - 4],
+
+
+                
+                // rechtes kreuz
+                [_x +3, _y, _z],
+                [_x +3, _y -1, _z],
+                [_x +3, _y -1, _z -1],
+                [_x +3, _y , _z -1],
+
+                [_x +3, _y, _z +1],
+                [_x +3, _y -1, _z +1],
+
+                [_x +3, _y -2, _z],
+                [_x +3, _y -2, _z -1],
+
+                [_x +3, _y, _z -2],
+                [_x +3, _y -1, _z -2],
+
+                [_x +3, _y +1, _z],
+                [_x +3, _y +1, _z -1],
+
+                
+                // linkes kreuz
+                [_x -4, _y, _z],
+                [_x -4, _y -1, _z],
+                [_x -4, _y -1, _z -1],
+                [_x -4, _y , _z -1],
+
+                [_x -4, _y, _z +1],
+                [_x -4, _y -1, _z +1],
+
+                [_x -4, _y -2, _z],
+                [_x -4, _y -2, _z -1],
+
+                [_x -4, _y, _z -2],
+                [_x -4, _y -1, _z -2],
+
+                [_x -4, _y +1, _z],
+                [_x -4, _y +1, _z -1],
+
+
+
+
+                
+                // vorderes kreuz
+                [_x , _y +3, _z],
+                [_x -1 , _y +3, _z],
+                [_x -1, _y +3, _z -1],
+                [_x , _y +3, _z -1],
+
+                [_x +1, _y +3, _z],
+                [_x +1, _y +3, _z -1],
+
+                [_x , _y +3, _z -2],
+                [_x -1 , _y +3, _z -2],
+
+                [_x -2 , _y +3, _z],
+                [_x -2 , _y +3, _z -1],
+
+                [_x , _y +3, _z +1],
+                [_x -1 , _y +3, _z +1],
+                
+
+                // hinteres kreuz
+                [_x , _y -4, _z],
+                [_x -1 , _y -4, _z],
+                [_x -1, _y -4, _z -1],
+                [_x , _y -4, _z -1],
+
+                [_x +1, _y -4, _z],
+                [_x +1, _y -4, _z -1],
+
+                [_x , _y -4, _z -2],
+                [_x -1 , _y -4, _z -2],
+
+                [_x -2 , _y -4, _z],
+                [_x -2 , _y -4, _z -1],
+
+                [_x , _y -4, _z +1],
+                [_x -1 , _y -4, _z +1],
+                
+                
+
+
+
+
+
+
+                
+
+
+
+
+
+            ];
+
+
+
+
+            var _x =  toolhead_center.x +  0.5 -3;
+            var _y =  toolhead_center.y +  0.5 -3;
+            var _z =  toolhead_center.z +  0.5 -3;
+
+
+            for (let x = 0 ; x < 6 ; x++){
+
+                for (let y = 0; y < 6 ; y++){
+
+                    for (let z = 0; z< 6; z++){
+
+                        /*
+
+                        toolhead = new THREE.Mesh(toolhead_geometry, toolhead_material);
+                        toolhead.position.set( _x + x   , _y + y  , _z + z );
+
+                        scene.add(toolhead);
+
+                        toolhead_list.push(toolhead);
+
+                        console.log("yes");
+
+                        */
+
+                        var these_coordinates = [_x + x, _y + y,_z + z];
+
+                        if(x == 0 && y == 0 && z == 0){
+                            console.log("nix");
+                        }
+                        else if(x == 5 && y == 0 && z == 0){
+                            console.log("nix");
+                        }
+                        else if(x == 5 && y == 5 && z == 0){
+                            console.log("nix");
+                        }
+                        else if(x == 0 && y == 5 && z == 0){
+                            console.log("nix");
+                        }
+                        else if(x == 0 && y == 0 && z == 5){
+                            console.log("nix");
+                        }
+                        else if(x == 5 && y == 0 && z == 5){
+                            console.log("nix");
+                        }
+                        else if(x == 5 && y == 5 && z == 5){
+                            console.log("nix");
+                        }
+                        else if(x == 0 && y == 5 && z == 5){
+                            console.log("nix");
+                        }
+                        else{
+                            toolhead_coordinates.push(these_coordinates)
+                        }
+                        
+
+                        
+
+                    } 
+
+
+                } 
+
+
+            }
+
+
+
+            toolhead_list = create_toolhead_from_coordinates(toolhead_coordinates);
+
+
+            
+        }
+
+
+
+
+        else if (toolhead_size == 3) {
+
+
+            
+            // create toolhead display geometry
+            var sphere_geometry = new THREE.SphereGeometry(7);
+            var display_toolhead = new THREE.Mesh(sphere_geometry, display_toolhead_material);
+            display_toolhead.position.set(toolhead_center.x + 0.5 , toolhead_center.y + 0.5, toolhead_center.z + 0.5);
+
+            toolhead_display_geometry.push(display_toolhead);
+            scene.add(display_toolhead);
+
+
+
+            
+            //toolhead_center = new THREE.Vector3(toolhead_size / 2,toolhead_size / 2,toolhead_size / 2 )
+
+
+            var _x =  toolhead_center.x +  0.5
+            var _y =  toolhead_center.y +  0.5
+            var _z =  toolhead_center.z +  0.5
+
+
+            var toolhead_coordinates = [
+
+
+                
+                [_x, _y, _z], // midlle point
+                //[_x, _y, _z +1],
+                //[_x, _y, _z -1],
+                //[_x, _y, _z -2],
+                
+
+                // oberes kreuz
+                [_x, _y, _z + 5],
+                [_x , _y +1, _z + 5],
+                [_x , _y +2, _z + 5],
+                [_x , _y -1, _z + 5],
+                [_x , _y -2, _z + 5],
+
+
+                [_x -1, _y, _z + 5],
+                [_x -1 , _y +1, _z + 5],
+                [_x -1 , _y +2, _z + 5],
+                [_x -1 , _y -1, _z + 5],
+                [_x -1 , _y -2, _z + 5],
+
+                [_x -2 , _y +1, _z + 5],
+                [_x -2 , _y , _z + 5],
+                [_x -2 , _y -1, _z + 5],
+
+
+                [_x +1, _y, _z + 5],
+                [_x +1 , _y +1, _z + 5],
+                [_x +1 , _y +2, _z + 5],
+                [_x +1 , _y -1, _z + 5],
+                [_x +1 , _y -2, _z + 5],
+
+
+                [_x +2 , _y +1, _z + 5],
+                [_x +2 , _y , _z + 5],
+                [_x +2 , _y -1, _z + 5],
+
+
+
+
+
+
+                // unteres kreuz
+                [_x, _y, _z -5],
+                [_x , _y +1, _z -5],
+                [_x , _y +2, _z -5],
+                [_x , _y -1, _z -5],
+                [_x , _y -2, _z -5],
+
+
+                [_x -1, _y, _z -5],
+                [_x -1 , _y +1, _z -5],
+                [_x -1 , _y +2, _z -5],
+                [_x -1 , _y -1, _z -5],
+                [_x -1 , _y -2, _z -5],
+
+                [_x -2 , _y +1, _z -5],
+                [_x -2 , _y , _z -5],
+                [_x -2 , _y -1, _z -5],
+
+
+                [_x +1, _y, _z -5],
+                [_x +1 , _y +1, _z -5],
+                [_x +1 , _y +2, _z -5],
+                [_x +1 , _y -1, _z -5],
+                [_x +1 , _y -2, _z -5],
+
+
+                [_x +2 , _y +1, _z -5],
+                [_x +2 , _y , _z -5],
+                [_x +2 , _y -1, _z -5],
+
+
+
+
+                // linkes kreuz
+                [_x -5, _y, _z],
+                [_x -5, _y, _z +1],
+                [_x -5, _y, _z -1],
+                [_x -5, _y, _z +2],
+                [_x -5, _y, _z -2],
+
+                [_x -5, _y +1, _z],
+                [_x -5, _y +1, _z +1],
+                [_x -5, _y +1, _z -1],
+                [_x -5, _y +1, _z +2],
+                [_x -5, _y +1, _z -2],
+
+                [_x -5, _y +2, _z],
+                [_x -5, _y +2, _z +1],
+                [_x -5, _y +2, _z -1],
+
+
+                [_x -5, _y -1, _z],
+                [_x -5, _y -1, _z +1],
+                [_x -5, _y -1, _z -1],
+                [_x -5, _y -1, _z +2],
+                [_x -5, _y -1, _z -2],
+
+                [_x -5, _y -2, _z],
+                [_x -5, _y -2, _z +1],
+                [_x -5, _y -2, _z -1],
+
+
+                // rechtes kreuz
+                [_x +5, _y, _z],
+                [_x +5, _y, _z +1],
+                [_x +5, _y, _z -1],
+                [_x +5, _y, _z +2],
+                [_x +5, _y, _z -2],
+
+                [_x +5, _y +1, _z],
+                [_x +5, _y +1, _z +1],
+                [_x +5, _y +1, _z -1],
+                [_x +5, _y +1, _z +2],
+                [_x +5, _y +1, _z -2],
+
+                [_x +5, _y +2, _z],
+                [_x +5, _y +2, _z +1],
+                [_x +5, _y +2, _z -1],
+
+
+                [_x +5, _y -1, _z],
+                [_x +5, _y -1, _z +1],
+                [_x +5, _y -1, _z -1],
+                [_x +5, _y -1, _z +2],
+                [_x +5, _y -1, _z -2],
+
+                [_x +5, _y -2, _z],
+                [_x +5, _y -2, _z +1],
+                [_x +5, _y -2, _z -1],
+
+
+
+                // hinteres kreuz
+                [_x , _y -5, _z],
+                [_x , _y -5, _z +1],
+                [_x , _y -5, _z -1],
+                [_x , _y -5, _z +2],
+                [_x , _y -5, _z -2],
+
+                [_x -1 , _y -5, _z],
+                [_x -1 , _y -5, _z +1],
+                [_x -1 , _y -5, _z -1],
+                [_x -1 , _y -5, _z +2],
+                [_x -1 , _y -5, _z -2],
+
+                [_x -2 , _y -5, _z],
+                [_x -2 , _y -5, _z +1],
+                [_x -2 , _y -5, _z -1],
+
+
+                [_x +1 , _y -5, _z],
+                [_x +1 , _y -5, _z +1],
+                [_x +1 , _y -5, _z -1],
+                [_x +1 , _y -5, _z +2],
+                [_x +1 , _y -5, _z -2],
+
+                [_x +2 , _y -5, _z],
+                [_x +2 , _y -5, _z +1],
+                [_x +2 , _y -5, _z -1],
+
+
+                // vorderes kreuz
+                [_x , _y +5, _z],
+                [_x , _y +5, _z +1],
+                [_x , _y +5, _z -1],
+                [_x , _y +5, _z +2],
+                [_x , _y +5, _z -2],
+
+                [_x -1 , _y +5, _z],
+                [_x -1 , _y +5, _z +1],
+                [_x -1 , _y +5, _z -1],
+                [_x -1 , _y +5, _z +2],
+                [_x -1 , _y +5, _z -2],
+
+                [_x -2 , _y +5, _z],
+                [_x -2 , _y +5, _z +1],
+                [_x -2 , _y +5, _z -1],
+
+
+                [_x +1 , _y +5, _z],
+                [_x +1 , _y +5, _z +1],
+                [_x +1 , _y +5, _z -1],
+                [_x +1 , _y +5, _z +2],
+                [_x +1 , _y +5, _z -2],
+
+                [_x +2 , _y +5, _z],
+                [_x +2 , _y +5, _z +1],
+                [_x +2 , _y +5, _z -1],
+
+
+
+
+
+            ];
+
+
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+
+            // 2. layer unten
+            var _x =  toolhead_center.x +  0.5 -4;
+            var _y =  toolhead_center.y +  0.5 -4;
+            var _z =  toolhead_center.z +  0.5 -4;
+
+            for (let x = 1 ; x < 8 ; x++){
+
+                for (let y = 1; y < 8 ; y++){
+
+                    var z = 0;
+
+                    
+
+                    var these_coordinates = [_x + x, _y + y,_z + z];
+
+                    if(x == 1 && y == 1 ){
+                        console.log("nix");
+                    }
+                    else if(x == 7 && y == 1 ){
+                        console.log("nix");
+                    }
+                    else if(x == 7 && y == 7 ){
+                        console.log("nix");
+                    }
+                    else if(x == 1 && y == 7 ){
+                        console.log("nix");
+                    }
+                    else{
+                        toolhead_coordinates.push(these_coordinates)
+                    }
+                    
+
+                } 
+
+
+            }
+
+
+
+            // 2. layer oben
+            var _x =  toolhead_center.x +  0.5 -4;
+            var _y =  toolhead_center.y +  0.5 -4;
+            var _z =  toolhead_center.z +  0.5 +4;
+
+            for (let x = 1 ; x < 8 ; x++){
+
+                for (let y = 1; y < 8 ; y++){
+
+                    var z = 0;
+
+                    
+
+                    var these_coordinates = [_x + x, _y + y,_z + z];
+
+                    if(x == 1 && y == 1 ){
+                        console.log("nix");
+                    }
+                    else if(x == 7 && y == 1 ){
+                        console.log("nix");
+                    }
+                    else if(x == 7 && y == 7 ){
+                        console.log("nix");
+                    }
+                    else if(x == 1 && y == 7 ){
+                        console.log("nix");
+                    }
+                    else{
+                        toolhead_coordinates.push(these_coordinates)
+                    }
+                    
+
+                } 
+
+
+            }
+
+
+
+            // 2. layer links
+            var _x =  toolhead_center.x +  0.5 -4;
+            var _y =  toolhead_center.y +  0.5 -4;
+            var _z =  toolhead_center.z +  0.5 -4;
+
+            for (let y = 1 ; y < 8 ; y++){
+
+                for (let z = 1; z < 8 ; z++){
+
+                    var x = 0;
+
+
+                    
+
+                    var these_coordinates = [_x + x, _y + y,_z + z];
+
+                    if(y == 1 && z == 1 ){
+                        console.log("nix");
+                    }
+                    else if(y == 7 && z == 1 ){
+                        console.log("nix");
+                    }
+                    else if(y == 7 && z == 7 ){
+                        console.log("nix");
+                    }
+                    else if(y == 1 && z == 7 ){
+                        console.log("nix");
+                    }
+                    else{
+                        toolhead_coordinates.push(these_coordinates)
+                    }
+                    
+
+                } 
+
+
+            }
+
+
+            // 2. layer rechts
+            var _x =  toolhead_center.x +  0.5 +4;
+            var _y =  toolhead_center.y +  0.5 -4;
+            var _z =  toolhead_center.z +  0.5 -4;
+
+            for (let y = 1 ; y < 8 ; y++){
+
+                for (let z = 1; z < 8 ; z++){
+
+                    var x = 0;
+
+
+                    
+
+                    var these_coordinates = [_x + x, _y + y,_z + z];
+
+                    if(y == 1 && z == 1 ){
+                        console.log("nix");
+                    }
+                    else if(y == 7 && z == 1 ){
+                        console.log("nix");
+                    }
+                    else if(y == 7 && z == 7 ){
+                        console.log("nix");
+                    }
+                    else if(y == 1 && z == 7 ){
+                        console.log("nix");
+                    }
+                    else{
+                        toolhead_coordinates.push(these_coordinates)
+                    }
+                    
+
+                } 
+
+
+            }
+
+
+
+            // 2. layer hinten
+            var _x =  toolhead_center.x +  0.5 -4;
+            var _y =  toolhead_center.y +  0.5 -4;
+            var _z =  toolhead_center.z +  0.5 -4;
+ 
+             for (let x = 1 ; x < 8 ; x++){
+ 
+                 for (let z = 1; z < 8 ; z++){
+ 
+                    var y = 0;
+
+
+                    
+
+                    var these_coordinates = [_x + x, _y + y,_z + z];
+
+                    if(x == 1 && z == 1 ){
+                        console.log("nix");
+                    }
+                    else if(x == 7 && z == 1 ){
+                        console.log("nix");
+                    }
+                    else if(x == 7 && z == 7 ){
+                        console.log("nix");
+                    }
+                    else if(x == 1 && z == 7 ){
+                        console.log("nix");
+                    }
+                    else{
+                        toolhead_coordinates.push(these_coordinates)
+                    }
+                    
+ 
+                } 
+ 
+ 
+            }
+
+
+            // 2. layer vorne
+            var _x =  toolhead_center.x +  0.5 -4;
+            var _y =  toolhead_center.y +  0.5 +4;
+            var _z =  toolhead_center.z +  0.5 -4;
+    
+                for (let x = 1 ; x < 8 ; x++){
+    
+                    for (let z = 1; z < 8 ; z++){
+    
+                    var y = 0;
+
+
+                    
+
+                    var these_coordinates = [_x + x, _y + y,_z + z];
+
+                    if(x == 1 && z == 1 ){
+                        console.log("nix");
+                    }
+                    else if(x == 7 && z == 1 ){
+                        console.log("nix");
+                    }
+                    else if(x == 7 && z == 7 ){
+                        console.log("nix");
+                    }
+                    else if(x == 1 && z == 7 ){
+                        console.log("nix");
+                    }
+                    else{
+                        toolhead_coordinates.push(these_coordinates)
+                    }
+                    
+    
+                } 
+    
+    
+            }
+ 
+            
+ 
+
+
+
+
+
+
+
+
+
+            // innerer würfel
+            var _x =  toolhead_center.x +  0.5 -3;
+            var _y =  toolhead_center.y +  0.5 -3;
+            var _z =  toolhead_center.z +  0.5 -3;
+
+
+
+            for (let x = 0 ; x < 7 ; x++){
+
+                for (let y = 0; y < 7 ; y++){
+
+                    for (let z = 0; z< 7; z++){
+
+                        /*
+
+                        toolhead = new THREE.Mesh(toolhead_geometry, toolhead_material);
+                        toolhead.position.set( _x + x   , _y + y  , _z + z );
+
+                        scene.add(toolhead);
+
+                        toolhead_list.push(toolhead);
+
+                        console.log("yes");
+
+                        */
+
+                        var these_coordinates = [_x + x, _y + y,_z + z];
+
+                        toolhead_coordinates.push(these_coordinates);
+                        
+
+                    } 
+
+
+                } 
+
+
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+            toolhead_list = create_toolhead_from_coordinates(toolhead_coordinates);
+
+
+            
+        }
+
+
+
+        console.log(toolhead_list.length)
+
+
+    }
+
+
+
+
+    /*
+    var _x =  toolhead_center.x +  0.5 -5;
+            var _y =  toolhead_center.y +  0.5 -5;
+            var _z =  toolhead_center.z +  0.5 -5;
+
+            for (let x = 0 ; x < 6 ; x++){
+
+                for (let y = 0; y < 6 ; y++){
+
+                    for (let z = 0; z< 6; z++){
+
+                        
+
+                        var these_coordinates = [_x + x, _y + y,_z + z];
+
+                        if(x == 0 && y == 0 && z == 0){
+                            console.log("nix");
+                        }
+                        else if(x == 5 && y == 0 && z == 0){
+                            console.log("nix");
+                        }
+                        else if(x == 5 && y == 5 && z == 0){
+                            console.log("nix");
+                        }
+                        else if(x == 0 && y == 5 && z == 0){
+                            console.log("nix");
+                        }
+                        else if(x == 0 && y == 0 && z == 5){
+                            console.log("nix");
+                        }
+                        else if(x == 5 && y == 0 && z == 5){
+                            console.log("nix");
+                        }
+                        else if(x == 5 && y == 5 && z == 5){
+                            console.log("nix");
+                        }
+                        else if(x == 0 && y == 5 && z == 5){
+                            console.log("nix");
+                        }
+                        else{
+                            //toolhead_coordinates.push(these_coordinates)
+                        }
+                        
+
+                        
+
+                    } 
+
+
+                } 
+
+
+            }
+
+
+
+    */
+
+
+
+
+
+
+
+
+
+
+
+    function create_toolhead_from_coordinates(i_coordinates_list){
+
+
+        var toolhead_geometry = new THREE.BoxGeometry(0.5,0.5,0.5);
+
+        var coordinates_list = i_coordinates_list;
+
+        var this_toolhead_list = [];
+
+        for( let i = 0; i < coordinates_list.length; i++){
+
+
+            var toolhead = new THREE.Mesh(toolhead_geometry, toolhead_material);
+            toolhead.position.set( coordinates_list[i][0]  , coordinates_list[i][1]   , coordinates_list[i][2] );
+
+            this_toolhead_list.push(toolhead);
+            //scene.add(toolhead);
+
+
+        }
+
+        return this_toolhead_list;
+
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    function create_box_toolhead(){
+
+        toolhead_list = [];
+        toolhead_display_geometry = [];
+
+
+
+        /*
         if (toolhead_size  == 1){
 
             // Toolhead geometry
@@ -1755,6 +3780,171 @@ function startApp() {
         }
 
 
+        */
+
+        if(toolhead_size == 1) {
+
+            var toolhead_coordinates = [];
+
+
+
+            // toolhead display geometry
+            var box_geometry = new THREE.BoxGeometry(4, 4, 4);
+            var display_toolhead = new THREE.Mesh(box_geometry, display_toolhead_material);
+            display_toolhead.position.set(toolhead_center.x , toolhead_center.y , toolhead_center.z );
+
+            toolhead_display_geometry.push(display_toolhead);
+            scene.add(display_toolhead);
+
+
+
+            var cube_size = 3;
+
+
+            var toolhead_geometry = new THREE.BoxGeometry(0.5,0.5,0.5);
+            
+            //toolhead_center = new THREE.Vector3(toolhead_size / 2,toolhead_size / 2,toolhead_size / 2 )
+
+            for (let x = - cube_size / 2 ; x < cube_size / 2 ; x++){
+
+                for (let y = -cube_size / 2; y < cube_size / 2 ; y++){
+
+                    for (let z = -cube_size / 2; z< cube_size / 2 ; z++){
+
+                        //var toolhead = new THREE.Mesh(toolhead_geometry, toolhead_material);
+                        //toolhead.position.set( toolhead_center.x + x + 0.5   , toolhead_center.y + y + 0.5 , toolhead_center.z + z+ 0.5);
+
+
+                        toolhead_coordinates.push([toolhead_center.x + x + 0.5, toolhead_center.y + y + 0.5, toolhead_center.z + z+ 0.5])
+                        //scene.add(toolhead);
+
+                        //toolhead_list.push(toolhead);
+
+                        
+
+                    } 
+
+
+                } 
+
+
+            }
+
+
+
+            toolhead_list = create_toolhead_from_coordinates(toolhead_coordinates);
+
+            
+            
+        }
+
+
+
+
+
+        if(toolhead_size == 2) {
+
+
+            var toolhead_coordinates = [];
+
+
+            // toolhead display geometry
+            var box_geometry = new THREE.BoxGeometry(7, 7, 7);
+            var display_toolhead = new THREE.Mesh(box_geometry, display_toolhead_material);
+            display_toolhead.position.set(toolhead_center.x , toolhead_center.y , toolhead_center.z );
+
+            toolhead_display_geometry.push(display_toolhead);
+            scene.add(display_toolhead);
+
+
+            var cube_size = 6;
+
+
+            var toolhead_geometry = new THREE.BoxGeometry(0.5,0.5,0.5);
+            
+            //toolhead_center = new THREE.Vector3(toolhead_size / 2,toolhead_size / 2,toolhead_size / 2 )
+
+            for (let x = - cube_size / 2 ; x < cube_size / 2 ; x++){
+
+                for (let y = -cube_size / 2; y < cube_size / 2 ; y++){
+
+                    for (let z = -cube_size / 2; z< cube_size / 2 ; z++){
+
+                        toolhead_coordinates.push([toolhead_center.x + x + 0.5, toolhead_center.y + y + 0.5, toolhead_center.z + z+ 0.5])
+
+                        
+
+                    } 
+
+
+                } 
+
+
+            }
+            
+
+            toolhead_list = create_toolhead_from_coordinates(toolhead_coordinates);
+            
+        }
+
+
+
+
+        if(toolhead_size == 3) {
+
+
+            var toolhead_coordinates = []
+
+
+
+            // toolhead display geometry
+            var box_geometry = new THREE.BoxGeometry(10, 10, 10);
+            var display_toolhead = new THREE.Mesh(box_geometry, display_toolhead_material);
+            display_toolhead.position.set(toolhead_center.x , toolhead_center.y , toolhead_center.z );
+
+            toolhead_display_geometry.push(display_toolhead);
+            scene.add(display_toolhead);
+
+
+
+
+            var cube_size = 9;
+
+
+            var toolhead_geometry = new THREE.BoxGeometry(0.5,0.5,0.5);
+            
+            //toolhead_center = new THREE.Vector3(toolhead_size / 2,toolhead_size / 2,toolhead_size / 2 )
+
+            for (let x = - cube_size / 2 ; x < cube_size / 2 ; x++){
+
+                for (let y = -cube_size / 2; y < cube_size / 2 ; y++){
+
+                    for (let z = -cube_size / 2; z< cube_size / 2 ; z++){
+
+                        toolhead_coordinates.push([toolhead_center.x + x + 0.5, toolhead_center.y + y + 0.5, toolhead_center.z + z+ 0.5])
+
+                        
+
+                    } 
+
+
+                } 
+
+
+            }
+
+
+            toolhead_list = create_toolhead_from_coordinates(toolhead_coordinates);
+            
+            
+        }
+
+        
+
+
+
+
+
         /*
         else if (toolhead_size == 2) {
 
@@ -1798,11 +3988,17 @@ function startApp() {
 
     function remove_toolhead(){
 
+        // remove all toolhead_voxels from scene
         for (let i = 0; i < toolhead_list.length; i++) {
 
             removeObject( toolhead_list[i]);
+            //toolhead_list = [];
 
         }
+
+
+        // remove the toolhead display mesh from scene
+        removeObject(toolhead_display_geometry[0]);
 
     }
 
@@ -1840,69 +4036,201 @@ function startApp() {
 
 
 
+    var final_voxel_list = [];
+    var csg_voxel_list = [];
+    var csg_union_list = [];
+    var final_mesh_list = [];
 
 
 
 
+    function create_final_mesh(){
+
+
+        final_voxel_list = [];
+        csg_voxel_list = [];
+        csg_union_list = [];
+        final_mesh_list = [];
+        
+
+        
+        for (let i = 0; i < voxel_position_list.length; i++) {
+                            
+            //matrix.setPosition( voxel_position_list[i][0], voxel_position_list[i][1], voxel_position_list[i][2] );
+
+            
 
 
 
+            // old way to create voxels
+            const this_voxel = new THREE.Mesh( voxel_geometry, normal_voxel_material ); 
+            //const voxel_cube2 = new THREE.Mesh( voxel_geometry, wireframe_material_voxel );
 
 
+            this_voxel.position.set( voxel_position_list[i][0], voxel_position_list[i][1], voxel_position_list[i][2]);
+            //voxel_cube2.position.set( var_x + 0.5, var_y + 0.5 , var_z + 0.5);
 
+            final_voxel_list.push(this_voxel);
 
+            //scene.add( voxel_cube );
+            //scene.add( voxel_cube2 );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // -------------------------------------------------------------------------------------------------------------
-    // ------------------------------------------------  ANIMATE  -------------------------------------------------- 
-    // -------------------------------------------------------------------------------------------------------------
-
-    function animate() {
-
-        requestAnimationFrame( animate );
-    
-        control.update();
-
-        if (toolhead_size != parameters.toolheadSize){
-
-            toolhead_size = parameters.toolheadSize;
-
-            remove_toolhead();
-            create_toolhead();
+            //console.log("voxel created");
 
         }
-    
-        renderer.render( scene, camera );
 
-        update_toolhead();
 
-        paint();
-        erase();
-        booleanUnion3();
+
+
+        // we have to unite all the voxels that were created in the last iteration (the ones in the voxel list)
+        // fist we transform all new voxels into csg objects
+        for ( let i = 0 ; i < final_voxel_list.length  ; i++ ){
+
+            final_voxel_list[i].updateMatrix();
+            var _csg = CSG.fromMesh(final_voxel_list[i], object_index);
+            object_index += 1;
+            csg_voxel_list.push(_csg);
+
+        }
+            
+
+
+
+
+
+
+        /*
+        // after we copied all the voxels into csg objects we can clean the voxel_list      
+        // remove all voxels from scene
+        for ( let i = 0 ; i < voxel_list.length  ; i++ ){
+            removeObject( voxel_list[i]);
+            console.log("voxel removed");
+        
+        }
+        // clean the voxel list
+        voxel_list = [];
+        */
+        
+
+
+
+        // if there are multiple voxels created they should be united
+        if (csg_voxel_list.length > 1){
+
+
+            // connect the first two voxels to the first union
+            var csg_union = csg_voxel_list[0].union(csg_voxel_list[1]);
+            // removing the first two objects from the csg list
+            csg_voxel_list = csg_voxel_list.slice(2);
+            csg_union_list.push(csg_union);
+
+
+
+            // now we can unite all csg objects
+            while(safety_num < safety_num_limit && csg_voxel_list.length > 0){
+
+                // adding 1 to the safety number
+                safety_num += 1;
+
+                // union the 
+                var csg_union = csg_union_list[0].union(csg_voxel_list[0]);
+                // removing the first object from the csg list
+                csg_voxel_list = csg_voxel_list.slice(1);
+
+                //clean the csg_union_list 
+                csg_union_list = [];
+                // append the new csg union into the csg_union_list
+                csg_union_list.push(csg_union);
+
+                console.log(safety_num);
+
+            }
+
+
+            // now all of the vopxels are united as a csg object in the csg_union_list
+            // so we can now transform this one csg_object into a mesh 
+            var unionMesh = CSG.toMesh(
+                csg_union_list[0],
+                new THREE.Matrix4(),
+                voxel_material,
+            );
+            // and put it into the boolean_mesh_list
+            final_mesh_list.push(unionMesh);
+            //scene.add(unionMesh);
+
+            
+
+            
+        }
+
+
+
+
+
+        // if we have only 1 voxel created this one should be the new boolean geometry
+        else if (csg_voxel_list.length == 1){
+            var unionMesh = CSG.toMesh(
+                csg_voxel_list[0],
+                new THREE.Matrix4(),
+                voxel_material,
+                
+            );
+
+            console.log("csg_voxel_list.length == 1");
+            final_mesh_list.push(unionMesh);
+            // append the new single csg voxel union mesh into the union_mesh_list
+            //csg_union_list.push(csg_voxel_list[0]);
+            //scene.add(unionMesh);
+
+        }
+
+
+
+
+        
+
+
+
+        return final_mesh_list[0];
+        //console.log(final_mesh_list[0]);
+
+
+        //return instanced_mesh;
+        
 
     }
 
+        
 
 
-    animate();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1924,7 +4252,9 @@ function startApp() {
 
     // integrate Buttons
     exportFunction();
+    clearFunction();
     muteFunction();
+    toolheadTypeFunction();
 
 
 
@@ -1980,6 +4310,12 @@ function startApp() {
 
 
 
+        /*// Global variables to keep track of meshes for export
+        var meshesToExport = [];
+        const finishButton = document.createElement('button'); // Finish button for exporting
+        const returnButton = document.createElement('button'); // Return button for returning to drawing mode
+        */
+
         
 
         // add click event listener to the export button and define which meshes to export
@@ -1988,25 +4324,14 @@ function startApp() {
             // Audible feedback on click
             exportSound.play();
 
-            // export Meshes
-            const meshesToExport = [];
-            const meshesCopy = []; // Array to hold copies of meshes
-
-            // Create copies of the meshes to be exported
-            for (let i = 0; i < boolean_mesh_list.length; i++) {
-
-                const meshCopy = boolean_mesh_list[0].clone();
-                meshesCopy.push(meshCopy);
-                meshesToExport.push(meshCopy);
-
-            }
-
-            //meshesToExport.push(boolean_mesh_list[0]);
-
-            exportSTL(meshesToExport);
+            // call the export stl function
+            exportSTL();
 
             // Remove focus from the button
             exportButton.blur();
+
+            // Prepare meshes for export and display in viewer
+            //prepareMeshesForExport();
 
         });
         
@@ -2015,19 +4340,13 @@ function startApp() {
 
 
         // EXPORT STL FUNCTION
-        function exportSTL( meshes ) {
+        function exportSTL( ) {
             const exporter = new STLExporter();
 
-            // Create a new scene and add the meshes to export
-            const exportScene = new THREE.Scene();
-            meshes.forEach(mesh => {
-                if (mesh instanceof THREE.Mesh) {
-                    exportScene.add(mesh);
-                } else {
-                    console.error('Object is not a valid instance of THREE.Mesh:', mesh);
-                }
-            });
 
+            const exportScene = new THREE.Scene();
+            exportScene.add(create_final_mesh());
+            //exportScene.add(instanced_mesh);
 
             // Generate STL data
             const stlData = exporter.parse(exportScene, { binary: true, includeNormals: true });
@@ -2047,6 +4366,108 @@ function startApp() {
 
         }
 
+
+        /*
+
+        // Prepare meshes for export and display in viewer
+        function prepareMeshesForExport() {
+            meshesToExport = [];
+            // Add meshes to the list for export
+            meshesToExport.push(create_final_mesh()); // Assuming create_final_mesh() function returns the mesh to be exported
+            // Add more meshes if needed
+
+            // Clear existing scene and renderer
+            clearScene();
+
+            // Display meshes in viewer
+            meshesToExport.forEach(mesh => {
+                viewerScene.add(mesh);
+            });
+
+            // Show UI for exporting or returning to drawing mode
+            showExportUI();
+        }
+
+
+
+        // Function to clear existing scene and renderer
+        function clearScene() {
+            // Remove all objects from the viewer scene
+             scene.children.forEach(child => {
+                scene.remove(child);
+            });
+        }
+
+
+
+        // Function to show UI for exporting or returning to drawing mode
+        function showExportUI() {
+            // Display UI elements for exporting or returning to drawing mode
+            // For example, you can show two buttons: "Finish" and "Return"
+            document.body.appendChild(finishButton);
+            finishButton.style.textContent = 'finish';
+            finishButton.style.fontSize = '12px';
+            finishButton.style.position = 'absolute';
+            finishButton.style.bottom = '2%';
+            finishButton.style.right = '20px';
+            finishButton.style.zIndex = '9999'; // place in front of scene
+            finishButton.style.cursor = 'pointer'; // Change cursor on hover
+
+            document.body.appendChild(returnButton);
+            returnButton.style.textContent = 'return';
+            returnButton.style.fontSize = '12px';
+            returnButton.style.position = 'absolute';
+            returnButton.style.bottom = '2%';
+            returnButton.style.right = '20px';
+            returnButton.style.zIndex = '9999'; // place in front of scene
+            returnButton.style.cursor = 'pointer'; // Change cursor on hover
+
+            // Add click event listener to the "Finish" button
+            finishButton.addEventListener('click', exportSelectedMeshes);
+
+            // Add click event listener to the "Return" button
+            returnButton.addEventListener('click', returnToDrawingMode);
+        }
+
+
+
+        // Function to export selected meshes
+        function exportSelectedMeshes() {
+            // Generate STL data for selected meshes
+            const exporter = new STLExporter();
+            const stlData = exporter.parse(new THREE.Group().add(...meshesToExport), { binary: true, includeNormals: true });
+
+            // Convert data to a blob and trigger download
+            const blob = new Blob([stlData], { type: 'application/octet-stream' });
+            const link = document.createElement('a');
+        
+            link.href = URL.createObjectURL(blob);
+            link.download = 'model.stl';
+            link.click();
+
+            // Clean up
+            URL.revokeObjectURL(link.href);
+        }
+
+
+
+        // Function to return to drawing mode
+        function returnToDrawingMode() {
+            // Clear viewer scene
+            clearScene();
+
+            // Hide UI elements for exporting or returning to drawing mode
+            finishButton.style.display = 'none';
+            returnButton.style.display = 'none';
+
+            // Add back event listener for export button
+            exportButton.addEventListener('click', prepareMeshesForExport);
+        }
+
+        */
+
+        
+
     }
     
     
@@ -2057,154 +4478,160 @@ function startApp() {
 
     // ----------------------------------------------  CLEAR SCENE  ------------------------------------------------ 
    
-    /*
-    // Create modal elements
-    const modal = document.createElement('div');
-    modal.classList.add('modal');
-    modal.style.display = 'none'; // Hide modal by default
+    function clearFunction() {
 
-    const modalContent = document.createElement('div');
-    modalContent.classList.add('modal-content');
+        /*
+        // Create modal elements
+        const modal = document.createElement('div');
+        modal.classList.add('modal');
+        modal.style.display = 'none'; // Hide modal by default
 
-    const message = document.createElement('p');
-    message.textContent = 'Are you sure you want to clear the scene?';
+        const modalContent = document.createElement('div');
+        modalContent.classList.add('modal-content');
 
-    const confirmButton = document.createElement('button');
-    confirmButton.textContent = 'I am sure';
+        const message = document.createElement('p');
+        message.textContent = 'Are you sure you want to clear the scene?';
 
-    // Add modal content to modal
-    modalContent.appendChild(message);
-    modalContent.appendChild(confirmButton);
-    modal.appendChild(modalContent);
+        const confirmButton = document.createElement('button');
+        confirmButton.textContent = 'I am sure';
 
-    // Append modal to the document body
-    document.body.appendChild(modal);
+        // Add modal content to modal
+        modalContent.appendChild(message);
+        modalContent.appendChild(confirmButton);
+        modal.appendChild(modalContent);
 
-    // Style the modal dynamically
-    modal.style.position = 'fixed';
-    modal.style.zIndex = '9999';
-    modal.style.left = '0';
-    modal.style.top = '0';
-    modal.style.width = '100%';
-    modal.style.height = '100%';
-    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        // Append modal to the document body
+        document.body.appendChild(modal);
 
-    modalContent.style.position = 'absolute';
-    modalContent.style.top = '50%';
-    modalContent.style.left = '50%';
-    modalContent.style.transform = 'translate(-50%, -50%)';
-    modalContent.style.backgroundColor = '#fff';
-    modalContent.style.padding = '20px';
+        // Style the modal dynamically
+        modal.style.position = 'fixed';
+        modal.style.zIndex = '9999';
+        modal.style.left = '0';
+        modal.style.top = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
 
-    // Function to show the modal
-    function showModal() {
-        modal.style.display = 'block';
-    }
+        modalContent.style.position = 'absolute';
+        modalContent.style.top = '50%';
+        modalContent.style.left = '50%';
+        modalContent.style.transform = 'translate(-50%, -50%)';
+        modalContent.style.backgroundColor = '#fff';
+        modalContent.style.padding = '20px';
 
-    // Function to hide the modal
-    function hideModal() {
-        modal.style.display = 'none';
-    }
+        // Function to show the modal
+        function showModal() {
+            modal.style.display = 'block';
+        }
 
-    // Event listener for the Clear Scene button
-    clearButton.addEventListener('click', () => {
-        showModal();
-    });
+        // Function to hide the modal
+        function hideModal() {
+            modal.style.display = 'none';
+        }
 
-    // Event listener for the I am sure button
-    confirmButton.addEventListener('click', () => {
-    
-        // Clear the scene (replace with your code to clear the scene)
-        console.log('Scene cleared!');
-        // Hide the modal
-        hideModal();
-    });
-    */
+        // Event listener for the Clear Scene button
+        clearButton.addEventListener('click', () => {
+            showModal();
+        });
 
-    // Create clear button
-    const clearButton = document.createElement('button');
-
-    clearButton.textContent = 'CLEAR SCENE';
-
-    // Style
-    clearButton.style.padding = '5px 5px';
-    clearButton.style.fontSize = '12px';
-    clearButton.style.backgroundColor = 'rgb(198, 105, 105)';
-    clearButton.style.color = '#fff';
-    clearButton.style.border = 'none';
-    clearButton.style.borderRadius = '5px';
-
-    clearButton.style.position = 'absolute';
-    clearButton.style.top = '2%';
-    clearButton.style.right = '120px';
-    clearButton.style.zIndex = '9999'; // Place in front of scene
-
-    clearButton.style.cursor = 'pointer'; // Change cursor on hover
-
-    
-    // Visual feedback on hover
-    clearButton.addEventListener('mouseenter', function() {
-        clearButton.style.backgroundColor = 'rgb(241, 195, 195)'; // Background color on hover
-    });
-
-    clearButton.addEventListener('mouseleave', function() {
-        clearButton.style.backgroundColor = 'rgb(198, 105, 105)'; // Original background color
-    });
-
-
-    // Visual feedback on click
-    clearButton.addEventListener('mousedown', function() {
-        clearButton.style.backgroundColor = 'rgb(241, 195, 195)'; // Background color on click
-    });
-
-    clearButton.addEventListener('mouseup', function() {
-        clearButton.style.backgroundColor = 'rgb(198, 105, 105)'; // Restore original background color after click
-    });
-
-
-    document.body.appendChild(clearButton);
-
-
-    
-
-
-
-    // Add click event listener to the clear button
-    clearButton.addEventListener('click', () => {
+        // Event listener for the I am sure button
+        confirmButton.addEventListener('click', () => {
         
-        // Play clear sound
-        clearSound.play();
+            // Clear the scene (replace with your code to clear the scene)
+            console.log('Scene cleared!');
+            // Hide the modal
+            hideModal();
+        });
+        */
 
-        // Clear the scene (replace with your clear scene function)
-        clearScene();
+        // Create clear button
+        const clearButton = document.createElement('button');
 
-        // Remove focus from the button
-        clearButton.blur();
+        clearButton.textContent = 'CLEAR SCENE';
 
-    });
+        // Style
+        clearButton.style.padding = '5px 5px';
+        clearButton.style.fontSize = '12px';
+        clearButton.style.backgroundColor = 'rgb(198, 105, 105)';
+        clearButton.style.color = '#fff';
+        clearButton.style.border = 'none';
+        clearButton.style.borderRadius = '5px';
 
+        clearButton.style.position = 'absolute';
+        clearButton.style.top = '2%';
+        clearButton.style.right = '120px';
+        clearButton.style.zIndex = '9999'; // Place in front of scene
 
+        clearButton.style.cursor = 'pointer'; // Change cursor on hover
 
-
-    // clear scene function
-    function clearScene() {
         
-        // Remove all objects from the scene
-        while (scene.children.length > 0) {
+        // Visual feedback on hover
+        clearButton.addEventListener('mouseenter', function() {
+            clearButton.style.backgroundColor = 'rgb(241, 195, 195)'; // Background color on hover
+        });
 
-            scene.remove(unionMesh);
+        clearButton.addEventListener('mouseleave', function() {
+            clearButton.style.backgroundColor = 'rgb(198, 105, 105)'; // Original background color
+        });
+
+
+        // Visual feedback on click
+        clearButton.addEventListener('mousedown', function() {
+            clearButton.style.backgroundColor = 'rgb(241, 195, 195)'; // Background color on click
+        });
+
+        clearButton.addEventListener('mouseup', function() {
+            clearButton.style.backgroundColor = 'rgb(198, 105, 105)'; // Restore original background color after click
+        });
+
+
+        document.body.appendChild(clearButton);
+
+
+        
+
+
+
+        // Add click event listener to the clear button
+        clearButton.addEventListener('click', () => {
+            
+            // Play clear sound
+            clearSound.play();
+
+            // Clear the scene (replace with your clear scene function)
+            clearScene();
+
+            // Remove focus from the button
+            clearButton.blur();
+
+        });
+
+
+
+
+        // clear scene function
+        function clearScene() {
+            
+            // Remove all objects from the scene
+            while (scene.children.length > 0) {
+
+                scene.remove(unionMesh);
+
+            }
+            
+
+
+
+            // Call your animate function to render the cleared scene
+            animate();
+
+            console.log('Scene cleared!');
 
         }
-        
-
-
-
-        // Call your animate function to render the cleared scene
-        animate();
-
-        console.log('Scene cleared!');
 
     }
+
+
 
 
 
@@ -2323,8 +4750,134 @@ function startApp() {
 
     }
     
+     
+
+
+
+
+
+    // -------------------------------------------------- Toolhead TYPE Selection ---------------------------------------------------
+
+    function toolheadTypeFunction() {
+
+        // ----- Toolhead TYPE -----
+
+        // Create the button element
+        var typeButton = document.createElement("button");
+        typeButton.setAttribute("id", "typeButton");
+        
+        // Create an image element for the icon
+        var typeIcon = document.createElement("img");
+        typeIcon.setAttribute("src", "icons/cube.png");
+        typeIcon.setAttribute("alt", "Toggle bgm");
+        typeIcon.style.width = '35px';
+        typeIcon.style.height = '35px';
+        typeIcon.style.position = 'absolute';
+        typeIcon.style.top = '2%';
+        typeIcon.style.left = '70px';
+        typeIcon.style.zIndex = '9999'; // place in front of scene
+        typeIcon.style.cursor = 'pointer'; // Change cursor on hover
+        
+        
+        // Append the icon image to the button
+        typeButton.appendChild(typeIcon);
+
+        // Append the button element to the body
+        document.body.appendChild(typeButton);
+
+
+
+        /*// muteButton TEXT style
+        muteButton.textContent = "Mute";
+
+        muteButton.style.padding = '5px 5px';
+        muteButton.style.fontSize = '12px'; // Set font size
+        muteButton.style.backgroundColor = 'rgb(69, 150, 69)'; // Set background color
+        muteButton.style.color = '#fff'; // Set text color
+        muteButton.style.border = 'none'; // Remove border
+        muteButton.style.borderRadius = '5px'; // Add border radius for rounded corners
+        
+        muteButton.style.position = 'absolute';
+        muteButton.style.top = '2%';
+        muteButton.style.left = '20px';
+        muteButton.style.zIndex = '9999'; // place in front of scene
+        muteButton.style.border = 'none'; // Remove border
+        muteButton.style.cursor = 'pointer'; // Change cursor on hover
+        */
+
+
+        // Visual feedback on hover
+        typeButton.addEventListener ('mouseenter', function() {
+            //muteButton.style.backgroundColor = 'rgb(180, 230, 180)'; // background color on hover
+            // exportButton.style.border = 'true';
+            typeIcon.style.filter = "brightness(120%)"; // Adjust brightness level as needed
+            typeIcon.style.opacity = "0.7"; // Adjust opacity level as needed
+        });
+
+        typeButton.addEventListener ('mouseleave', function() {
+            //muteButton.style.backgroundColor = 'rgb(69, 150, 69)'; // original background color
+            typeIcon.style.filter = "brightness(100%)"; // Adjust brightness level as needed
+            typeIcon.style.opacity = "1"; // Adjust opacity level as needed
+        });
+
+
+
+        // Visual feedback on click
+        typeButton.addEventListener ('mousedown', function() {
+            //muteButton.style.backgroundColor = 'rgb(180, 230, 180)'; // background color on click
+            typeIcon.style.filter = "brightness(120%)"; // Adjust brightness level as needed
+            typeIcon.style.opacity = "0.7"; // Adjust opacity level as needed
+        });
+
+        typeButton.addEventListener ('mouseup', function() {
+            //muteButton.style.backgroundColor = 'rgb(69, 150, 69)'; // Restore original background color after click
+            typeIcon.style.filter = "brightness(100%)"; // Adjust brightness level as needed
+            typeIcon.style.opacity = "1"; // Adjust opacity level as needed
+        });
+        
+
+
+        
+
+
+
+
+        // Set initial state
+        var isSphere = false;
+        var toolhead_type = [];
+
+        // Function to toggle mute/play
+        typeButton.addEventListener("click", function() {
+
+            if (isSphere) {
+
+                toolhead_type = 0;
+                //muteButton.textContent = "Mute";
+                typeIcon.setAttribute("src", "icons/cube.png");
+
+                console.log('toolhead Type: cube');
+
+            } else {
+
+                bgm.pause();
+                //muteButton.textContent = "Unmute";
+                typeIcon.setAttribute("src", "icons/sphere.png");
+
+                console.log('toolhead Type: sphere')
+
+            }
+
+            isSphere = !isSphere;
+
+            // Remove focus from the button
+            typeButton.blur();
+
+        });
+
+    }
     
     
+    
 
 
 
@@ -2334,6 +4887,8 @@ function startApp() {
 
 
     
+
+
 
 
 
@@ -2348,53 +4903,59 @@ function startApp() {
 
 
     // -------------------------------------------------------------------------------------------------------------
+    // ------------------------------------------------  ANIMATE  -------------------------------------------------- 
+    // -------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+    function animate() {
+
+        requestAnimationFrame( animate );
     
+        control.update()
+    
+        // condition for recreating toolhead if parameters change
+        if (toolhead_size != parameters.toolheadSize || toolhead_type != parameters.toolheadType){
+
+            toolhead_size = parameters.toolheadSize;
+            toolhead_type = parameters.toolheadType;
+
+            remove_toolhead();
+            create_toolhead();
+            //create_box_toolhead();
+
+        }
+    
+        renderer.render( scene, camera );
+
+        update_toolhead();
+
+
+        paint_instanced_mesh_clean();
+        //paint_instanced_mesh_new();
+        //paint_points();
+        erase();
+        //booleanUnion3();
+
+
+        //console.log(count);
+        console.log(voxel_position_list.length);
+
+        //console.log(toolhead_center);
+
+    }
+
+
+
+    animate();
+
+
 
 
 
 } // End of App as Function
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// -------------------------------------------------------------------------------------------------------------
-// ------------------------------------------------  NOTIZEN  -------------------------------------------------- 
-// -------------------------------------------------------------------------------------------------------------
-
-
-
-
-/* --------------------------------------------- Color Palette -----------------------------------------------
-
-https://colorhunt.co/palette/ffffecf1e4c3c6a969597e52
-rgb(255, 255, 236)      beige hell
-rgb(241, 228, 195)      beige dunkel
-rgb(198, 169, 105)      braun
-rgb(89, 126, 82)        grün dunkel
-
-
-https://colorhunt.co/palette/f9efdbebd9b49dbc98638889
-rgb(249, 239, 219)      beige hell
-rgb(235, 217, 180)      beige dunkel
-rgb(157, 188, 152)      grün
-rgb(99, 136, 137)       teal
-rgb(99, 126, 118)       teal dunkel
-
-
-*/
 
 
 
